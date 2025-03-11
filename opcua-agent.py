@@ -79,9 +79,7 @@ Control the Valve:
 """
     )
 
-# Sidebar: Refresh Variables Button
-if st.button("🔄 Refresh Variables"):
-    fetch_variables()
+
 
 # Fetch variables from the OPC UA server
 def fetch_variables():
@@ -103,7 +101,10 @@ def fetch_variables():
         st.session_state["variable_table"] = None
         st.warning("⚠ No variables found or an error occurred.")
 
-
+# Sidebar: Refresh Variables Button
+if st.button("🔄 Refresh Variables"):
+    fetch_variables()
+    
 # Sidebar: Connection String Input
 st.sidebar.subheader("🔗 Connection Setup")
 st.session_state["connection_string"] = st.sidebar.text_input(
