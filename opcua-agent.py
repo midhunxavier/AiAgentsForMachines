@@ -104,7 +104,7 @@ def fetch_variables():
 # Sidebar: Refresh Variables Button
 if st.button("🔄 Refresh Variables"):
     fetch_variables()
-    
+
 # Sidebar: Connection String Input
 st.sidebar.subheader("🔗 Connection Setup")
 st.session_state["connection_string"] = st.sidebar.text_input(
@@ -240,4 +240,6 @@ if st.session_state["saved_variables"]:
                 st.button("save workflow coming soon!")
 
 
-
+st.sidebar.write("Made with ❤️ by Midhun Xavier")
+st.sidebar.write("website :  www.midhunxavier.com")
+st.sidebar.write("Email : midhun.xavier@ltu.se")
