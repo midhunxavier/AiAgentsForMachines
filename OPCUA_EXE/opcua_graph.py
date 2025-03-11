@@ -8,6 +8,13 @@ from langchain_core.messages import HumanMessage, SystemMessage
 import json
 from functools import partial
 from typing import Any
+from dotenv import load_dotenv
+import os 
+
+load_dotenv()
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
 
 # Extend the MessagesState as needed
 class MessagesState(MessagesState):
