@@ -79,6 +79,10 @@ Control the Valve:
 """
     )
 
+# Sidebar: Refresh Variables Button
+if st.button("🔄 Refresh Variables"):
+    fetch_variables()
+    
 # Fetch variables from the OPC UA server
 def fetch_variables():
     opcua_variables = find_variables_by_endpoint(st.session_state["connection_string"])
@@ -94,7 +98,7 @@ def fetch_variables():
             [[name, info["value"]] for name, info in st.session_state["opcua_variables"].items()],
             columns=["Variable Name", "Value"]
         )
-        st.success("✅ Variables fetched successfully!")
+        st.success("✅ Variables fetched successfully! Use OPC UA client for realtime analysis")
     else:
         st.session_state["variable_table"] = None
         st.warning("⚠ No variables found or an error occurred.")
@@ -130,9 +134,7 @@ if st.sidebar.button("Connect"):
 
 
 
-# Sidebar: Refresh Variables Button
-if st.button("🔄 Refresh Variables"):
-    fetch_variables()
+
 
 # Display the variable table if available
 if "variable_table" in st.session_state and st.session_state["variable_table"] is not None:
