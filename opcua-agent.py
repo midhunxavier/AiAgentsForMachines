@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-
+import pandas as pd
 # Replace with your actual import that finds variables
 # Example: from client.findVariablesByEndpoint import find_variables_by_endpoint
 from client.findVariablesByEndpoint import find_variables_by_endpoint
@@ -21,28 +21,84 @@ if "messages" not in st.session_state:
 if "agent_started" not in st.session_state:
     st.session_state["agent_started"] = False
 if "connection_string" not in st.session_state:
-    st.session_state["connection_string"] = "opc.tcp://localhost:4840/freeopcua/server/"
+    st.session_state["connection_string"] = "opc.tcp://18.212.12.234:4840/freeopcua/server/"
 if "agent_instructions" not in st.session_state:
     st.session_state["agent_instructions"] = (
-        """Rotating Arm Control System
-            You are an intelligent assistant responsible for controlling a ROTATING ARM in a factory environment using OPC UA variables. Your objective is to transfer workpieces from the left (magazine side) to the right (next processing station) by correctly reading sensor values and activating actuators.
+        """System Description:
+This is an industrial automation system controlled via an OPC UA server. The system consists of sensors that monitor key operational parameters and actuators that allow external control. The AI agent can read sensor values and modify actuator states to control the system dynamically.
 
-            Rotating Arm Sensors:
-            at_mgz: TRUE if the arm is positioned at the magazine (Left side).
-            at_next: TRUE if the arm is at the next processing station (Right side).
-            Rotating Arm Actuators:
-            to_mgz: Moves the arm to the magazine side. Set to TRUE to start moving, then FALSE once it arrives.
-            to_next: Moves the arm to the next processing station. Set to TRUE to start moving, then FALSE once it arrives.
-            Task Execution Flow:
-            Move the rotating arm to the magazine side if it's not already there.
-            Move the rotating arm to the next processing station.
-            Return the rotating arm to the magazine side to repeat the cycle.
-            Your task is to control the ROTATING ARM efficiently while ensuring correct sensor readings and actuator commands.
-            Exexcution constraints:
-            1. Check the sensor value of before of at_mgz or at_next find the location ARM and then execute the ARM movement.
+System Components & Variables:
+1. Sensors (Read-Only)
+Temperature Sensor (Temperature)
 
-            """
+Measures system temperature in °C (Celsius).
+Temperature increases when the motor is ON.
+Temperature decreases when the motor is OFF.
+Normal operating range: 20°C - 100°C.
+Pressure Sensor (Pressure)
+
+Measures system pressure in bar.
+Pressure increases when the valve is CLOSED.
+Pressure decreases when the valve is OPEN.
+Operating range: 0.5 - 5.0 bar.
+Motor Speed Sensor (MotorSpeed)
+
+Measures motor speed in RPM (Revolutions Per Minute).
+Motor speed increases when the motor is ON.
+Motor speed decreases when the motor is OFF.
+Max motor speed: 3000 RPM.
+2. Actuators (Writeable - Can be Controlled by AI)
+Motor State (MotorState)
+
+Controls whether the motor is ON or OFF.
+TRUE → Motor is ON (Speed and Temperature increase).
+FALSE → Motor is OFF (Speed and Temperature decrease).
+Can be modified by AI to start or stop the motor.
+Valve Position (ValvePosition)
+
+Controls whether the valve is OPEN or CLOSED.
+TRUE → Valve is OPEN (Pressure decreases).
+FALSE → Valve is CLOSED (Pressure increases).
+Can be modified by AI to regulate pressure.
+AI Agent Capabilities:
+The AI agent can interpret and execute user commands to control the system. Here are some examples:
+
+Start/Stop the Motor:
+
+"Turn ON the motor." → Sets MotorState = TRUE.
+"Stop the motor." → Sets MotorState = FALSE.
+Check System Status:
+
+"What is the current temperature?" → Reads Temperature.
+"How fast is the motor running?" → Reads MotorSpeed.
+"What is the current pressure level?" → Reads Pressure.
+Control the Valve:
+
+"Open the valve to decrease pressure." → Sets ValvePosition = TRUE.
+"Close the valve to increase pressure." → Sets ValvePosition = FALSE.
+"""
     )
+
+# Fetch variables from the OPC UA server
+def fetch_variables():
+    opcua_variables = find_variables_by_endpoint(st.session_state["connection_string"])
+    if opcua_variables:
+        st.session_state["opcua_variables"] = {
+            var["name"]: {
+                "value": var["value"],
+            }
+            for var in opcua_variables
+        }
+        # Update the table format
+        st.session_state["variable_table"] = pd.DataFrame(
+            [[name, info["value"]] for name, info in st.session_state["opcua_variables"].items()],
+            columns=["Variable Name", "Value"]
+        )
+        st.success("✅ Variables fetched successfully!")
+    else:
+        st.session_state["variable_table"] = None
+        st.warning("⚠ No variables found or an error occurred.")
+
 
 # Sidebar: Connection String Input
 st.sidebar.subheader("🔗 Connection Setup")
@@ -50,10 +106,12 @@ st.session_state["connection_string"] = st.sidebar.text_input(
     "Enter OPC UA Connection String", 
     st.session_state["connection_string"]
 )
+st.sidebar.write("Default opc ua server has been deployed to the cloud for testing purpose.")
 
 if st.sidebar.button("Connect"):
     # Find variables instead of methods
     variables = find_variables_by_endpoint(st.session_state["connection_string"])
+    fetch_variables()
     if variables:
         for variable in variables:
             var_name = variable["name"]
@@ -70,12 +128,24 @@ if st.sidebar.button("Connect"):
     else:
         st.sidebar.write("No variables found or an error occurred.")
 
+
+
+# Sidebar: Refresh Variables Button
+if st.button("🔄 Refresh Variables"):
+    fetch_variables()
+
+# Display the variable table if available
+if "variable_table" in st.session_state and st.session_state["variable_table"] is not None:
+    st.subheader("📊 OPC UA Variables")
+    st.dataframe(st.session_state["variable_table"])
+else:
+    st.write("No variables to display.")
+
+
 # Sidebar: Display Unsaved Variables
 st.sidebar.subheader("📌 Available Variables")
 for var_name, var_info in list(st.session_state["variables"].items()):
     with st.sidebar.expander(var_name, expanded=True):
-        st.write(f"**Node ID:** {var_info['nodeid']}")
-        st.write(f"**Data Type:** {var_info['data_type']}")
         st.write(f"**Current Value:** {var_info['value']}")
         st.write(f"**Description:** {var_info['description']}")
         if st.sidebar.button("Add to Agent environment", key=f"save_sidebar_{var_name}"):
@@ -96,10 +166,6 @@ keys_to_remove = []
 if st.session_state["saved_variables"]:
     for var_name, var_info in st.session_state["saved_variables"].items():
         with st.expander(var_name, expanded=True):
-            st.write(f"**Object ID:** {var_info['object_id']}")
-            st.write(f"**Node ID:** {var_info['nodeid']}")
-            st.write(f"**Data Type:** {var_info['data_type']}")
-            st.write(f"**Current Value:** {var_info['value']}")
 
             # Allow editing the description
             new_desc = st.text_area(

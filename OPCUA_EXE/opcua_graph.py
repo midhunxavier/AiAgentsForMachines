@@ -37,11 +37,15 @@ def opcua_read_variable(endpoint: str, node_id_str: str) -> str:
         namespace_idx = int(parts[0].split("=")[1])  # Extract namespace index (ns=X)
         guid_str = parts[1].split("=")[1]  # Extract GUID (g=GUID)
 
-        # Convert GUID string to UUID
-        node_guid = uuid.UUID(guid_str)
+
         
         # Get the node
-        node = client.get_node(ua.NodeId(node_guid, namespace_idx))
+        if len(guid_str) <3:
+            node = client.get_node(node_id_str)
+        else:
+            # Convert GUID string to UUID
+            node_guid = uuid.UUID(guid_str)
+            node = client.get_node(ua.NodeId(node_guid, namespace_idx))
 
         # Read the value
         value = node.get_value()
@@ -76,11 +80,16 @@ def opcua_write_variable(endpoint: str, node_id_str: str, value_to_write: bool) 
         namespace_idx = int(parts[0].split("=")[1])  # Extract namespace index (ns=X)
         guid_str = parts[1].split("=")[1]  # Extract GUID (g=GUID)
 
-        # Convert GUID string to UUID
-        node_guid = uuid.UUID(guid_str)
 
-        # Get the node
-        node = client.get_node(ua.NodeId(node_guid, namespace_idx))
+
+        if len(guid_str) <3:
+            node = client.get_node(node_id_str)
+        else:
+            # Convert GUID string to UUID
+            node_guid = uuid.UUID(guid_str)
+            node = client.get_node(ua.NodeId(node_guid, namespace_idx))
+
+
 
         # Create DataValue and write the new value
         dv = ua.DataValue()
