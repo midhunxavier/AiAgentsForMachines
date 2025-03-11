@@ -82,7 +82,7 @@ Control the Valve:
 # Sidebar: Refresh Variables Button
 if st.button("🔄 Refresh Variables"):
     fetch_variables()
-    
+
 # Fetch variables from the OPC UA server
 def fetch_variables():
     opcua_variables = find_variables_by_endpoint(st.session_state["connection_string"])
@@ -212,6 +212,13 @@ if st.session_state["saved_variables"]:
     # Display chat only if "Test Agent" is activated
     if st.session_state["chat_visible"]:
         st.title("📝 AI Agent")
+        st.button("Deploy your Agent - Coming soon!")
+        st.download_button(
+            label="Download config",
+            data=json.dumps(st.session_state["saved_variables"]),
+            file_name="variables.json",
+            mime="application/json"
+        )
         for msg in st.session_state["messages"]:
             st.chat_message(msg["role"]).write(msg["content"])
 
@@ -219,6 +226,7 @@ if st.session_state["saved_variables"]:
         if prompt := st.chat_input():
             st.session_state.messages.append({"role": "user", "content": prompt})
             st.chat_message("user").write(prompt)
+
             
             workflow = st.session_state.get("workflow")
             if workflow:
@@ -228,3 +236,7 @@ if st.session_state["saved_variables"]:
                         response = value["messages"][-1].content
                         st.session_state.messages.append({"role": "assistant", "content": response})
                         st.chat_message("assistant").write(response)
+                st.button("save workflow coming soon!")
+
+
+
